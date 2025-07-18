@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { ChatInterface } from '@/components/ChatInterface';
+import { LoaderAnimation } from '@/components/LoaderAnimation';
 
 const Index = () => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <LoaderAnimation onComplete={handleLoadingComplete} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
