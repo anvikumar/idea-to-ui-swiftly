@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot } from 'lucide-react';
+import { Send, User, Bot, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -8,13 +8,17 @@ interface Message {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  file?: {
+    name: string;
+    size: number;
+  };
 }
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hello! I\'m your AI assistant. How can I help you today?',
+      text: 'Hello! I\'m your AI assistant. How can I help you today? You can also upload PDF files for analysis.',
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -22,6 +26,7 @@ export function ChatInterface() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,6 +68,55 @@ export function ChatInterface() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      const fileMessage: Message = {
+        id: Date.now().toString(),
+        text: `Uploaded PDF: ${file.name}`,
+        sender: 'user',
+        timestamp: new Date(),
+        file: {
+          name: file.name,
+          size: file.size,
+        },
+      };
+
+      setMessages((prev) => [...prev, fileMessage]);
+      setIsTyping(true);
+
+      // Simulate bot response for PDF analysis
+      setTimeout(() => {
+        const botMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'I\'ve received your PDF file. I can help analyze its content, extract information, or answer questions about it. What would you like me to do with this document?',
+          sender: 'bot',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, botMessage]);
+        setIsTyping(false);
+      }, 2000);
+    } else {
+      // Show error for non-PDF files
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: 'Please upload only PDF files.',
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -110,7 +164,24 @@ export function ChatInterface() {
                   : 'bg-card border border-border text-foreground'
               }`}
             >
-              <p className="text-sm">{message.text}</p>
+              {message.file ? (
+                <div className="space-y-2">
+                  <div className={`flex items-center space-x-2 p-2 rounded border ${
+                    message.sender === 'user' 
+                      ? 'border-white/20 bg-white/10' 
+                      : 'border-border bg-muted/50'
+                  }`}>
+                    <Paperclip className="h-4 w-4" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{message.file.name}</p>
+                      <p className="text-xs opacity-70">{(message.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  </div>
+                  <p className="text-sm">{message.text}</p>
+                </div>
+              ) : (
+                <p className="text-sm">{message.text}</p>
+              )}
               <p
                 className={`text-xs mt-1 ${
                   message.sender === 'user'
@@ -155,6 +226,22 @@ export function ChatInterface() {
             placeholder="Type your message..."
             className="flex-1"
           />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            onClick={triggerFileUpload}
+            disabled={isTyping}
+            size="icon"
+            variant="outline"
+            className="border-border hover:bg-muted"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
           <Button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isTyping}
